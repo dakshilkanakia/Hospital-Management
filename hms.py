@@ -548,9 +548,9 @@ def openAddDoctor():
 			if (dr_id <= 0):
 				raise MyEx("ID Should be a positive non zero integer")
 
-			sqlFormat = "select d_id,d_name from department WHERE d_name LIKE" +" '%" + f_d_name +"%';"
+			sqlFormat = "select d_id,d_name from department WHERE d_name LIKE" +" ?" +";"
 			sql = sqlFormat
-			cursor.execute(sql)
+			cursor.execute(sql, ('%{0}%'.format(f_d_name), ))
 			departmentList = cursor.fetchall()
 			flag = False
 			for d in departmentList:
