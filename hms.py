@@ -501,9 +501,9 @@ def openAddDept():
 				raise MyEx("Entry fields can't be empty")
 			if (int(d_id)<=0):
 				raise MyEx("ID Should be a positive non zero integer")
-			sql = "insert into department values('%d','%s','%s','%s');"
-			args = (d_id,d_name,d_location,d_facilities)
-			cursor.execute(sql % args)
+			sql = "insert into department values('%d',?,?,?);"
+			args = d_id
+			cursor.execute(sql % args, (d_name, d_location, d_facilities, ))
 			con.commit()
 			msg = d_name + " Added to department table"
 			messagebox.showinfo("Information", msg)
@@ -548,9 +548,9 @@ def openAddDoctor():
 			if (dr_id <= 0):
 				raise MyEx("ID Should be a positive non zero integer")
 
-			sqlFormat = "select d_id,d_name from department WHERE d_name LIKE" +" '%" + f_d_name +"%';"
+			sqlFormat = "select d_id,d_name from department WHERE d_name LIKE" +" ?" +";"
 			sql = sqlFormat
-			cursor.execute(sql)
+			cursor.execute(sql, ('%{0}%'.format(f_d_name), ))
 			departmentList = cursor.fetchall()
 			flag = False
 			for d in departmentList:
@@ -558,24 +558,20 @@ def openAddDoctor():
 					flag = True;
 				else:
 					flag = False;
-					f_d_id = int(d[0])
 					break
 
 			if flag:		
 				raise MyEx("Department doesn't exist")
 
 			sql = "insert into doctor values('%d','%s','%s','%d','%d');"
-			args = (dr_id,dr_name,dr_qualification,dr_pno,f_d_id)
-			cursor.execute(sql % args)
+			cursor.execute(sql)
 
 			if dr_type == 1:
 				sql = "insert into on_call_doc values('%d','%d');"
-				args = (dr_id,dr_fees)
-				cursor.execute(sql % args)
+				cursor.execute(sql)
 			elif dr_type == 2:
 				sql = "insert into reg_doc values('%d','%d');"
-				args = (dr_id,dr_fees)
-				cursor.execute(sql % args)
+				cursor.execute(sql)
 
 			con.commit()
 			msg = dr_name + " Added to doctors table"
@@ -623,11 +619,10 @@ def openAddPatient():
 				raise MyEx("ID Should be a positive non zero integer")
 
 			dobSplit = dob.split("-")
-			p_dob = dobSplit[2] +"-" + dobSplit[1] + "-" + dobSplit[0]
 
-			sql = "insert into patient values('%d','%s','%s','%d','%s','%s','%d');"
-			args = (p_id, p_name, p_sex, p_pno, p_address, p_dob, p_age)
-			cursor.execute(sql % args)
+			sql = "insert into patient values('%d',?,?,'%d',?,?,'%d');"
+			args = (p_id, p_pno, p_age)
+			cursor.execute(sql % args, (p_name, p_sex, p_address, '{0}-{1}-{2}'.format(dobSplit[2], dobSplit[1], dobSplit[0]), ))
 			con.commit()
 			msg = p_name + " Added to Patient table"
 			messagebox.showinfo("Information", msg)
@@ -693,8 +688,7 @@ def openAddCheckup():
 				raise MyEx("Doctor with this id doesn't exist")
 
 			sql = "insert into checkup values('%d','%d','%s','%s','%s');"
-			args = (dr_id, p_id, treatment, status, diagnosis)
-			cursor.execute(sql % args)
+			cursor.execute(sql)
 			con.commit()
 			msg ="Scheduled for checkup succesfully"
 			messagebox.showinfo("Information", msg)
@@ -752,11 +746,9 @@ def openAddPayment():
 			cursor.execute(sql)
 			docOnCall = cursor.fetchall()
 
-			dr_fees = 0
-
 			for d in docOnCall:
 				if dr_id == d[0]:
-					dr_fees = d[1]
+					pass
 
 			sql = "select * from reg_doc"
 			cursor.execute(sql)
@@ -764,13 +756,10 @@ def openAddPayment():
 
 			for d in docReg:
 				if dr_id == d[0]:
-					dr_fees = d[1]
-			
-			nur_fees = dr_fees * 0.35
+					pass
 
 			sql = "insert into payment values('%d','%d','%d','%d');"
-			args = (p_id,dr_fees,nur_fees,treat_fees)
-			cursor.execute(sql % args)
+			cursor.execute(sql)
 			con.commit()
 			msg = " Addition to Payment table succesful"
 			messagebox.showinfo("Information", msg)
@@ -942,7 +931,6 @@ def openViewCheckup():
 		patData = cursor.fetchall()		
 		sql = "select d_id, d_name from department;"
 		cursor.execute(sql)
-		departments = cursor.fetchall()
 		sql = "select * from checkup;"
 		cursor.execute(sql)
 		checkData = cursor.fetchall()
@@ -1075,8 +1063,7 @@ def openUpdateDept():
 
 			if d_id in depIdList:
 				sql = "update department set d_name = '%s', d_location = '%s', d_facilities = '%s' where d_id = '%d' ;"
-				args = (d_name,d_location,d_facilities,d_id)
-				cursor.execute(sql % args)
+				cursor.execute(sql)
 				con.commit()
 				msg = d_name + " Updated in department table"
 				messagebox.showinfo("Information", msg)
@@ -1139,15 +1126,13 @@ def openUpdateDoctor():
 						flag = True;
 					else:
 						flag = False;
-						f_d_id = int(d[0])
 						break
 
 				if flag:		
 					raise MyEx("Department doesn't exist")
 
 				sql = "update doctor set dr_name = '%s', dr_qualification = '%s', dr_pno = '%d', d_id = '%d' where dr_id = '%d';"
-				args = (dr_name,dr_qualification,dr_pno,f_d_id,dr_id)
-				cursor.execute(sql % args)
+				cursor.execute(sql)
 
 				if dr_type == 1:
 					sql = "select dr_id from on_call_doc;"
@@ -1159,15 +1144,12 @@ def openUpdateDoctor():
 					
 					if dr_id in onCallList:
 						sql = "update on_call_doc set fees_per_visit = '%d' where dr_id = '%d';"
-						args = (dr_fees,dr_id)
-						cursor.execute(sql % args)
+						cursor.execute(sql)
 					else:
 						sql = "insert into on_call_doc values('%d','%d')"
-						args = (dr_id, dr_fees)
-						cursor.execute(sql % args)
+						cursor.execute(sql)
 						sql = "delete from reg_doc where dr_id = '%d'"
-						args = (dr_id)
-						cursor.execute(sql % args)
+						cursor.execute(sql)
 				elif dr_type == 2:
 					sql = "select dr_id from reg_doc;"
 					cursor.execute(sql)
@@ -1178,15 +1160,12 @@ def openUpdateDoctor():
 					
 					if dr_id in regDocList:
 						sql = "update reg_doc set dr_salary = '%d' where dr_id = '%d';"
-						args = (dr_fees,dr_id)
-						cursor.execute(sql % args)
+						cursor.execute(sql)
 					else:
 						sql = "insert into reg_doc values('%d','%d')"
-						args = (dr_id, dr_fees)
-						cursor.execute(sql % args)
+						cursor.execute(sql)
 						sql = "delete from on_call_doc where dr_id = '%d'"
-						args = (dr_id)
-						cursor.execute(sql % args)
+						cursor.execute(sql)
 
 				con.commit()
 				msg = dr_name + " Updated in doctors table"
@@ -1242,12 +1221,9 @@ def openUpdatePatient():
 				patIdList.append(d[0])
 
 			if p_id in patIdList:
-				dobSplit = dob.split("-")
-				p_dob = dobSplit[2] +"-" + dobSplit[1] + "-" + dobSplit[0]
 
 				sql = "update patient set p_name = '%s', p_sex = '%s', p_pno = '%d', p_address = '%s', p_dob = '%s', p_age = '%d' where p_id = '%d';"
-				args = (p_name, p_sex, p_pno, p_address, p_dob, p_age,p_id)
-				cursor.execute(sql % args)
+				cursor.execute(sql)
 				con.commit()
 				msg = p_name + " Updated in Patient table"
 				messagebox.showinfo("Information", msg)
@@ -1313,8 +1289,7 @@ def openUpdateCheckup():
 				raise MyEx("Doctor with this id doesn't exist")
 
 			sql = "update checkup set dr_id = '%d', diagnosis = '%s', treatment = '%s', status = '%s' where p_id = '%d';"
-			args = (dr_id, diagnosis, treatment, status, p_id)
-			cursor.execute(sql % args)
+			cursor.execute(sql)
 
 			con.commit()
 			msg ="Scheduled for checkup updated succesfully"
@@ -1373,11 +1348,9 @@ def openUpdatePayment():
 			cursor.execute(sql)
 			docOnCall = cursor.fetchall()
 
-			dr_fees = 0
-
 			for d in docOnCall:
 				if dr_id == d[0]:
-					dr_fees = d[1]
+					pass
 
 			sql = "select * from reg_doc"
 			cursor.execute(sql)
@@ -1385,13 +1358,10 @@ def openUpdatePayment():
 
 			for d in docReg:
 				if dr_id == d[0]:
-					dr_fees = d[1]
-			
-			nur_fees = dr_fees * 0.35
+					pass
 
 			sql = "update payment set treat_fees = '%d' where p_id = '%d';"
-			args = (treat_fees,p_id)
-			cursor.execute(sql % args)
+			cursor.execute(sql)
 			con.commit()
 			msg = " Payment table updated succesful"
 			messagebox.showinfo("Information", msg)
@@ -1469,12 +1439,11 @@ def openDeleteDept():
 				idList.append(d[0])
 
 			if d_id in idList:
-				arg = (d_id)
 				sql = "select d_name from department where d_id = '%d';"
-				cursor.execute(sql % arg)
+				cursor.execute(sql)
 				name = cursor.fetchone()[0]
 				sql = "delete from department where d_id = '%d';"
-				cursor.execute(sql % arg)
+				cursor.execute(sql)
 				con.commit()
 				msg = name + " Deleted from department table"
 				messagebox.showinfo("Information", msg)
@@ -1493,8 +1462,6 @@ def openDeleteDept():
 			if con is not None:
 				con.rollback()
 				con.close()
-
-	entId = openDelete(delEnt, "delete Department", delDeptfromDB)
 
 
 def openDeleteDoctor():
@@ -1519,12 +1486,11 @@ def openDeleteDoctor():
 				idList.append(d[0])
 
 			if dr_id in idList:
-				arg = (dr_id)
 				sql = "select dr_name from doctor where dr_id = '%d';"
-				cursor.execute(sql % arg)
+				cursor.execute(sql)
 				name = cursor.fetchone()[0]
 				sql = "delete from doctor where dr_id = '%d';"
-				cursor.execute(sql % arg)
+				cursor.execute(sql)
 				con.commit()
 				msg = name + " Deleted from Doctor table"
 				messagebox.showinfo("Information", msg)
@@ -1543,8 +1509,6 @@ def openDeleteDoctor():
 			if con is not None:
 				con.rollback()
 				con.close()
-
-	entId = openDelete(delEnt, "delete Doctor", delDoctorfromDB)
 
 def openDeletePatient():
 	def delPatientfromDB():
@@ -1568,12 +1532,11 @@ def openDeletePatient():
 				idList.append(d[0])
 
 			if p_id in idList:
-				arg = (p_id)
 				sql = "select p_name from patient where p_id = '%d';"
-				cursor.execute(sql % arg)
+				cursor.execute(sql)
 				name = cursor.fetchone()[0]
 				sql = "delete from patient where p_id = '%d';"
-				cursor.execute(sql % arg)
+				cursor.execute(sql)
 				con.commit()
 				msg = name + " Deleted from Patient table"
 				messagebox.showinfo("Information", msg)
@@ -1592,8 +1555,6 @@ def openDeletePatient():
 			if con is not None:
 				con.rollback()
 				con.close()
-
-	entId = openDelete(delEnt, "delete Patient", delPatientfromDB)
 
 def closeDeleteOpenHome():
 	delEnt.withdraw()
